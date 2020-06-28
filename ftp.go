@@ -67,7 +67,7 @@ func (c *ftpConn) processFTPConn() {
 			c.procQuitCmd(args)
 			return
 		default:
-			c.procUnknownCmd(args)
+			c.procUnknownCmd(cmd, args)
 		}
 	}
 }
@@ -98,7 +98,8 @@ func (c *ftpConn) procQuitCmd(args string) {
 	c.reply("221 Bye.")
 }
 
-func (c *ftpConn) procUnknownCmd(args string) {
+func (c *ftpConn) procUnknownCmd(cmd, args string) {
+	log.Printf("Unknown cmd %v args:[%v]", cmd, args)
 	c.reply("502 Not implemented")
 }
 
