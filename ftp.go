@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strings"
 )
 
@@ -30,12 +31,17 @@ func procesTCPConn(c *net.TCPConn) {
 
 	c.Write([]byte("220 Yves FTP Ready\r\n"))
 
-	ftpConn := &ftpConn{c}
+	curWorkDir, err := os.Getwd()
+	if err != nil {
+		log.Fatal("os.Getwd:", err)
+	}
+	ftpConn := &ftpConn{c, curWorkDir}
 	ftpConn.processFTPConn()
 }
 
 type ftpConn struct {
 	*net.TCPConn
+	curWorkDir string
 }
 
 func (c *ftpConn) processFTPConn() {
@@ -51,6 +57,8 @@ func (c *ftpConn) processFTPConn() {
 		switch cmd {
 		case "USER":
 			c.procUserCmd(args)
+		case "CWD":
+			c.procCWDCmd(args)
 		}
 	}
 }
@@ -58,4 +66,19 @@ func (c *ftpConn) processFTPConn() {
 func (c *ftpConn) procUserCmd(args string) {
 	log.Printf("procUserCmd(%q) %#v", args, *c)
 	fmt.Fprintf(c, "230 User %s logged in, proceed.\r\n", args)
+}
+
+func (c *ftpConn) procCWDCmd(args string) {
+	log.Printf("procCWDCmd(%q) %#v", args, *c)
+	if len(args) == 0 {
+		fmt.Fprintf(c, "501 Empty parameters.\r\n")
+	}
+	newCurWorkDir := c.curWorkDir + "/" + args
+	_, err := os.Stat(newCurWorkDir)
+	if err != nil {
+		log.Print(err)
+		fmt.Fprintf(c, "550 new working dir does not exist.\r\n")
+	}
+	c.curWorkDir = newCurWorkDir
+	fmt.Fprintf(c, "200 Current workdir changed.\r\n")
 }
