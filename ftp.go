@@ -18,16 +18,25 @@ func main() {
 			log.Fatal("Accept: ", err)
 		}
 
-		go procesConn(c)
+		go procesTCPConn(c)
 	}
 }
 
-func procesConn(c net.Conn) {
+func procesTCPConn(c net.Conn) {
 	defer c.Close()
 	log.Println("remote addr = ", c.RemoteAddr())
 
 	c.Write([]byte("220 Yves FTP Ready\r\n"))
 
+	ftpConn := &ftpConn{c}
+	ftpConn.processFTPConn()
+}
+
+type ftpConn struct {
+	net.Conn
+}
+
+func (c *ftpConn) processFTPConn() {
 	s := bufio.NewScanner(c)
 	for s.Scan() {
 		line := s.Text()
