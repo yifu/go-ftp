@@ -23,6 +23,7 @@ func main() {
 }
 
 func procesConn(c net.Conn) {
+	defer c.Close()
 	log.Println("remote addr = ", c.RemoteAddr())
 
 	c.Write([]byte("220 Yves FTP Ready\r\n"))
