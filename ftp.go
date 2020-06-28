@@ -52,7 +52,10 @@ func (c *ftpConn) processFTPConn() {
 		log.Printf(">> %q", line)
 		splits := strings.SplitN(line, " ", 2)
 		cmd := splits[0]
-		args := splits[1]
+		var args string
+		if len(splits) > 1 {
+			args = splits[1]
+		}
 		log.Printf("cmd=%q, args=%q", cmd, args)
 
 		switch cmd {
