@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"net"
+	"strings"
 )
 
 func main() {
@@ -25,11 +27,13 @@ func procesConn(c net.Conn) {
 
 	c.Write([]byte("220 Yves FTP Ready\r\n"))
 
-	b := make([]byte, 40)
-	n, err := c.Read(b)
-	if err != nil {
-		log.Fatal("Read: ", err)
+	s := bufio.NewScanner(c)
+	for s.Scan() {
+		line := s.Text()
+		log.Printf("line=%q", line)
+		splits := strings.SplitN(line, " ", 2)
+		cmd := splits[0]
+		args := splits[1]
+		log.Printf("cmd=%q, args=%q", cmd, args)
 	}
-
-	log.Printf("b:=%q[%v]", string(b[:n-2]), n)
 }
