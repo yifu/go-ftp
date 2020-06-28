@@ -63,6 +63,9 @@ func (c *ftpConn) processFTPConn() {
 			c.procUserCmd(args)
 		case "CWD":
 			c.procCWDCmd(args)
+		case "QUIT":
+			c.procQuitCmd(args)
+			return
 		}
 	}
 }
@@ -87,6 +90,10 @@ func (c *ftpConn) procCWDCmd(args string) {
 	}
 	c.curWorkDir = newCurWorkDir
 	c.reply("200 Current workdir changed.")
+}
+
+func (c *ftpConn) procQuitCmd(args string) {
+	c.reply("221 Bye.")
 }
 
 func (c *ftpConn) reply(line string) {
