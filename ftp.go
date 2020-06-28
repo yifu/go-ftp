@@ -45,5 +45,14 @@ func (c *ftpConn) processFTPConn() {
 		cmd := splits[0]
 		args := splits[1]
 		log.Printf("cmd=%q, args=%q", cmd, args)
+
+		switch cmd {
+		case "USER":
+			c.procUserCmd(args)
+		}
 	}
+}
+
+func (c *ftpConn) procUserCmd(args string) {
+	log.Printf("procUserCmd(%q) %#v", args, *c)
 }
