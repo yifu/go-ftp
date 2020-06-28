@@ -57,5 +57,5 @@ func (c *ftpConn) processFTPConn() {
 
 func (c *ftpConn) procUserCmd(args string) {
 	log.Printf("procUserCmd(%q) %#v", args, *c)
-	fmt.Fprintf(c, "230 User %s logged in, proceed.", args)
+	fmt.Fprintf(c, "230 User %s logged in, proceed.\r\n", args)
 }
