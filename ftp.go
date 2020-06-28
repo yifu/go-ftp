@@ -19,11 +19,12 @@ func main() {
 			log.Fatal("Accept: ", err)
 		}
 
-		go procesTCPConn(c)
+		tcpc := c.(*net.TCPConn)
+		go procesTCPConn(tcpc)
 	}
 }
 
-func procesTCPConn(c net.Conn) {
+func procesTCPConn(c *net.TCPConn) {
 	defer c.Close()
 	log.Println("remote addr = ", c.RemoteAddr())
 
@@ -34,7 +35,7 @@ func procesTCPConn(c net.Conn) {
 }
 
 type ftpConn struct {
-	net.Conn
+	*net.TCPConn
 }
 
 func (c *ftpConn) processFTPConn() {
