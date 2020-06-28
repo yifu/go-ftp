@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -74,7 +75,7 @@ func (c *ftpConn) procCWDCmd(args string) {
 		c.reply("501 Empty parameters.")
 		return
 	}
-	newCurWorkDir := c.curWorkDir + "/" + args
+	newCurWorkDir := path.Clean(c.curWorkDir + "/" + args)
 	_, err := os.Stat(newCurWorkDir)
 	if err != nil {
 		log.Print("os.Stat: ", err)
