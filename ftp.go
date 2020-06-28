@@ -71,13 +71,12 @@ func (c *ftpConn) procUserCmd(args string) {
 func (c *ftpConn) procCWDCmd(args string) {
 	log.Printf("procCWDCmd(%q) %#v", args, *c)
 	if len(args) == 0 {
-		fmt.Fprintf(c, "501 Empty parameters.\r\n")
+		return
 	}
 	newCurWorkDir := c.curWorkDir + "/" + args
 	_, err := os.Stat(newCurWorkDir)
 	if err != nil {
-		log.Print(err)
-		fmt.Fprintf(c, "550 new working dir does not exist.\r\n")
+		return
 	}
 	c.curWorkDir = newCurWorkDir
 	fmt.Fprintf(c, "200 Current workdir changed.\r\n")
