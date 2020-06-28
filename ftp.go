@@ -66,6 +66,8 @@ func (c *ftpConn) processFTPConn() {
 		case "QUIT":
 			c.procQuitCmd(args)
 			return
+		default:
+			c.procUnknownCmd(args)
 		}
 	}
 }
@@ -94,6 +96,10 @@ func (c *ftpConn) procCWDCmd(args string) {
 
 func (c *ftpConn) procQuitCmd(args string) {
 	c.reply("221 Bye.")
+}
+
+func (c *ftpConn) procUnknownCmd(args string) {
+	c.reply("502 Not implemented")
 }
 
 func (c *ftpConn) reply(line string) {
