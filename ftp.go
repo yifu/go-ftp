@@ -48,7 +48,7 @@ func (c *ftpConn) processFTPConn() {
 	s := bufio.NewScanner(c)
 	for s.Scan() {
 		line := s.Text()
-		log.Printf("line=%q", line)
+		log.Printf(">> %q", line)
 		splits := strings.SplitN(line, " ", 2)
 		cmd := splits[0]
 		args := splits[1]
@@ -65,19 +65,28 @@ func (c *ftpConn) processFTPConn() {
 
 func (c *ftpConn) procUserCmd(args string) {
 	log.Printf("procUserCmd(%q) %#v", args, *c)
-	fmt.Fprintf(c, "230 User %s logged in, proceed.\r\n", args)
+	c.reply(fmt.Sprintf("230 User %s logged in, proceed.", args))
 }
 
 func (c *ftpConn) procCWDCmd(args string) {
 	log.Printf("procCWDCmd(%q) %#v", args, *c)
 	if len(args) == 0 {
+		c.reply("501 Empty parameters.")
 		return
 	}
 	newCurWorkDir := c.curWorkDir + "/" + args
 	_, err := os.Stat(newCurWorkDir)
 	if err != nil {
+		log.Print("os.Stat: ", err)
+		c.reply("550 new working dir does not exist.")
 		return
 	}
 	c.curWorkDir = newCurWorkDir
-	fmt.Fprintf(c, "200 Current workdir changed.\r\n")
+	c.reply("200 Current workdir changed.")
+}
+
+func (c *ftpConn) reply(line string) {
+	line += "\r\n"
+	log.Printf("<< %q", line)
+	fmt.Fprint(c, line)
 }
