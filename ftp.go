@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -70,6 +71,10 @@ func (c *ftpConn) processFTPConn() {
 			return
 		case "PORT":
 			c.procPortCmd(args)
+		//case "LPRT":
+		//c.reply("200 Cmd lprt not implementeds")
+		case "LIST":
+			c.procListCmd(args)
 		default:
 			c.procUnknownCmd(cmd, args)
 		}
@@ -130,13 +135,48 @@ func (c *ftpConn) procPortCmd(args string) {
 	c.reply("200 Cmd ok")
 }
 
+func (c *ftpConn) procListCmd(args string) {
+	targetPath := filepath.Clean(filepath.Join(c.curWorkDir, args))
+	log.Printf("Target path %q", targetPath)
+
+	files, err := ioutil.ReadDir(targetPath)
+	if err != nil {
+		log.Printf("ioutil.ReadDir(%q): %v", targetPath, err)
+		c.reply("550 " + err.Error())
+		return
+	}
+	c.reply("150 Opening data connection")
+
+	dataConn, err := c.connectToDataChan()
+	if err != nil {
+		c.reply("425 Cannot open data connection.")
+		return
+	}
+	defer dataConn.Close()
+
+	for _, file := range files {
+		fmt.Fprintf(dataConn, "%v%v", file.Name(), c.EOL())
+	}
+	fmt.Fprintf(dataConn, "%v", c.EOL())
+
+	c.reply("226 Closing data connection")
+}
+
+func (c *ftpConn) connectToDataChan() (net.Conn, error) {
+	return net.Dial("tcp", c.dataAddr)
+}
+
+func (c *ftpConn) EOL() string {
+	return "\n\r"
+}
+
 func (c *ftpConn) procUnknownCmd(cmd, args string) {
 	log.Printf("Unknown cmd %v args:[%v]", cmd, args)
 	c.reply("502 Not implemented")
 }
 
 func (c *ftpConn) reply(line string) {
-	line += "\r\n"
+	line += c.EOL()
 	log.Printf("<< %q", line)
 	fmt.Fprint(c, line)
 }
