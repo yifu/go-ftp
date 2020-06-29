@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -36,13 +37,14 @@ func procesTCPConn(c *net.TCPConn) {
 	if err != nil {
 		log.Fatal("os.Getwd:", err)
 	}
-	ftpConn := &ftpConn{c, curWorkDir}
+	ftpConn := &ftpConn{c, curWorkDir, ""}
 	ftpConn.processFTPConn()
 }
 
 type ftpConn struct {
 	*net.TCPConn
 	curWorkDir string
+	dataAddr   string
 }
 
 func (c *ftpConn) processFTPConn() {
@@ -66,6 +68,8 @@ func (c *ftpConn) processFTPConn() {
 		case "QUIT":
 			c.procQuitCmd(args)
 			return
+		case "PORT":
+			c.procPortCmd(args)
 		default:
 			c.procUnknownCmd(cmd, args)
 		}
@@ -96,6 +100,34 @@ func (c *ftpConn) procCWDCmd(args string) {
 
 func (c *ftpConn) procQuitCmd(args string) {
 	c.reply("221 Bye.")
+}
+
+func (c *ftpConn) procPortCmd(args string) {
+	arguments := strings.Split(args, ",")
+	if len(arguments) != 6 {
+		c.reply(fmt.Sprintf("501 %v is the wrong number of arguments for the port cmd.", len(arguments)))
+	}
+
+	portMSB, err := strconv.Atoi(arguments[4])
+	if err != nil {
+		log.Print(arguments[4], " port MSB is not a number.")
+		c.reply("501 Syntax error in parameters or arguments")
+		return
+	}
+	portLSB, err := strconv.Atoi(arguments[5])
+	if err != nil {
+		log.Print(arguments[5], " port LSB is not a number.")
+		c.reply("501 Syntax error in parameters or arguments")
+		return
+	}
+	port := portMSB
+	port <<= 8
+	port += portLSB
+
+	//c.dataAddr = fmt.Sprintf("%v.%v.%v.%v:%v", arguments[0:4]..., port)
+	c.dataAddr = fmt.Sprintf("%v.%v.%v.%v:%v", arguments[0], arguments[1], arguments[2], arguments[3], port)
+	log.Print("data addr is ", c.dataAddr)
+	c.reply("200 Cmd ok")
 }
 
 func (c *ftpConn) procUnknownCmd(cmd, args string) {
