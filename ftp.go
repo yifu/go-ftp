@@ -165,7 +165,7 @@ func (c *ftpConn) connectToDataChan() (net.Conn, error) {
 }
 
 func (c *ftpConn) EOL() string {
-	return "\n\r"
+	return "\r\n"
 }
 
 func (c *ftpConn) procUnknownCmd(cmd, args string) {
