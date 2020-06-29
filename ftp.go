@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -73,6 +74,8 @@ func (c *ftpConn) processFTPConn() {
 			c.procPortCmd(args)
 		case "LIST":
 			c.procListCmd(args)
+		case "RETR":
+			c.procRetrCmd(args)
 		default:
 			c.procUnknownCmd(cmd, args)
 		}
@@ -158,6 +161,35 @@ func (c *ftpConn) procListCmd(args string) {
 	fmt.Fprintf(dataConn, "%v", c.EOL())
 
 	c.reply("226 Closing data connection")
+}
+
+func (c *ftpConn) procRetrCmd(args string) {
+	targetPath := filepath.Clean(filepath.Join(c.curWorkDir, args))
+	log.Printf("Target path %q", targetPath)
+
+	f, err := os.Open(targetPath)
+	if err != nil {
+		log.Printf("os.Open(%q): %v", targetPath, err)
+		c.reply("550 Bad file")
+		return
+	}
+
+	c.reply("150 Open data connection")
+	dataConn, err := c.connectToDataChan()
+	if err != nil {
+		log.Printf("connectToDataChan(): %v", err)
+		c.reply("425 Can't open data connection")
+		return
+	}
+	defer dataConn.Close()
+
+	if _, err := io.Copy(dataConn, f); err != nil {
+		log.Printf("io.Copy(): %v", err)
+		c.reply("426 Abort copy")
+		return
+	}
+
+	c.reply("226 Close data connection")
 }
 
 func (c *ftpConn) connectToDataChan() (net.Conn, error) {
