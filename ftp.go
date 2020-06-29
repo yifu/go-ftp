@@ -71,8 +71,6 @@ func (c *ftpConn) processFTPConn() {
 			return
 		case "PORT":
 			c.procPortCmd(args)
-		//case "LPRT":
-		//c.reply("200 Cmd lprt not implementeds")
 		case "LIST":
 			c.procListCmd(args)
 		default:
