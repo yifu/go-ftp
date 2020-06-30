@@ -1,0 +1,59 @@
+An implementation of a ftp server written in Go. Based on
+- https://medium.com/better-programming/how-to-write-a-concurrent-ftp-server-in-go-part-1-3904f2e3a9e5
+- https://medium.com/better-programming/how-to-write-a-concurrent-ftp-server-in-go-part-2-4a59f4216639
+- http://cr.yp.to/ftp.html
+- RFC 959
+
+TODO
+- Implement TYPE cmd.
+- In text mode, read files line by line, and append '\r\n' before sending to the client.
+- Test with macosx client. Test with a browser.
+- Daemonize the server.
+- Introduce a jailDir. For each user.
+- Implement the PASS cmd.
+- Implement the PASV cmd.
+- Each user must be 'anonymous' by default. May change to get better acl with the USER cmd.
+- Consider using strings.Fields() instead of SplitN() for extracting parameters.
+- Verb must be interpreted in any case: RETR, retr, Retr, ReTr, and so on.
+- Marks replies must be hyphenited (?)
+- Consider sending a 220 greetings msgs at connection.
+- Implement SYST cmd. How can we do that in a portable way with Go?
+- Implement cmds used by the macosx client.
+- It MUST be possible to pipeline QUIT/ABORT/STAT cmds.
+So we must be able to read the next command while a file transfer is being done in parrallel.
+But processed after the completion of the previous commands.
+Not for ABOR cmd (it wold be useless otherwise).
+- Deal with encoded pathname.
+- At connection: USER, then PASS, then ACCT cmds. In that order. Others cmds are rejected. Except: QUIT, SYST, HELP and NOOP.
+
+
+
+
+Extract from RFC 959
+5.1.  MINIMUM IMPLEMENTATION
+      In order to make FTP workable without needless error messages, the
+      following minimum implementation is required for all servers:
+         TYPE - ASCII Non-print
+         MODE - Stream
+         STRUCTURE - File, Record
+         COMMANDS - USER, QUIT, PORT,
+                    TYPE, MODE, STRU,
+                      for the default values
+                    RETR, STOR,
+                    NOOP.
+      The default values for transfer parameters are:
+         TYPE - ASCII Non-print
+         MODE - Stream
+         STRU - File
+      All hosts must accept the above as the standard defaults.
+
+
+
+TODO Read other RFCs:
+http://tools.ietf.org/rfc/rfc959.txt
+http://tools.ietf.org/rfc/rfc1123.txt
+http://tools.ietf.org/rfc/rfc2228.txt
+http://tools.ietf.org/rfc/rfc2389.txt
+http://tools.ietf.org/rfc/rfc2428.txt
+http://tools.ietf.org/rfc/rfc3659.txt
+http://tools.ietf.org/rfc/rfc4217.txt
