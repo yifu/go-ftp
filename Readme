@@ -25,7 +25,7 @@ But processed after the completion of the previous commands.
 Not for ABOR cmd (it wold be useless otherwise).
 - Deal with encoded pathname.
 - At connection: USER, then PASS, then ACCT cmds. In that order. Others cmds are rejected. Except: QUIT, SYST, HELP and NOOP.
-
+- List and nlist cmd pass filenames separated with '\r\n' on the data connection whatever the data type (data mode).
 
 
 
