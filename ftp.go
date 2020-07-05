@@ -222,7 +222,25 @@ func (c *ftpConn) procTypeCmd(args string) {
 			return
 		}
 		c.isDataTypeBinary = true
-	case 'E', 'L':
+	case 'L':
+		localArguments := cmdArguments[1:]
+		if len(localArguments) > 1 {
+			c.reply("500 Syntax error, command unrecognized.")
+			return
+		}
+		n, err := strconv.Atoi(localArguments[0])
+		if err != nil {
+			c.reply("500 Syntax error, command unrecognized.")
+			return
+		}
+
+		if n != 8 {
+			c.reply("504 Command not implemented for that parameter.")
+			return
+		}
+		c.isDataTypeBinary = true
+
+	case 'E':
 		c.reply("504 Command not implemented for that parameter.")
 		return
 	}
