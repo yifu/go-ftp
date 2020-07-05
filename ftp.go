@@ -186,10 +186,19 @@ func (c *ftpConn) procRetrCmd(args string) {
 	}
 	defer dataConn.Close()
 
-	if _, err := io.Copy(dataConn, f); err != nil {
-		log.Printf("io.Copy(): %v", err)
-		c.reply("426 Abort copy")
-		return
+	if c.isDataTypeBinary {
+		log.Printf("Copying with io.Copy()")
+		if _, err := io.Copy(dataConn, f); err != nil {
+			log.Printf("io.Copy(): %v", err)
+			c.reply("426 Abort copy")
+			return
+		}
+	} else {
+		log.Printf("Copying with scanner")
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			fmt.Fprintf(dataConn, "%s\r\n", scanner.Text())
+		}
 	}
 
 	c.reply("226 Close data connection")
