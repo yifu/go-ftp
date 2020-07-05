@@ -39,14 +39,15 @@ func procesTCPConn(c *net.TCPConn) {
 	if err != nil {
 		log.Fatal("os.Getwd:", err)
 	}
-	ftpConn := &ftpConn{c, curWorkDir, ""}
+	ftpConn := &ftpConn{c, curWorkDir, "", false}
 	ftpConn.processFTPConn()
 }
 
 type ftpConn struct {
 	*net.TCPConn
-	curWorkDir string
-	dataAddr   string
+	curWorkDir       string
+	dataAddr         string
+	isDataTypeBinary bool
 }
 
 func (c *ftpConn) processFTPConn() {
@@ -76,6 +77,8 @@ func (c *ftpConn) processFTPConn() {
 			c.procListCmd(args)
 		case "RETR":
 			c.procRetrCmd(args)
+		case "TYPE":
+			c.procTypeCmd(args)
 		default:
 			c.procUnknownCmd(cmd, args)
 		}
@@ -190,6 +193,42 @@ func (c *ftpConn) procRetrCmd(args string) {
 	}
 
 	c.reply("226 Close data connection")
+}
+
+func (c *ftpConn) procTypeCmd(args string) {
+	cmdArguments := strings.Split(args, " ")
+	typ := cmdArguments[0]
+
+	if len(typ) != 1 {
+		c.reply("501 Syntax error in parameters or arguments.")
+		return
+	}
+
+	switch rune(typ[0]) {
+	case 'A':
+		formcodes := cmdArguments[1:]
+		if len(formcodes) > 1 {
+			c.reply("500 Syntax error, command unrecognized.")
+			return
+		} else if len(formcodes) == 1 {
+			c.reply("504 Command not implemented for that parameter.")
+			return
+		}
+		c.isDataTypeBinary = false
+	case 'I':
+		imgArguments := cmdArguments[1:]
+		if len(imgArguments) > 0 {
+			c.reply("500 Syntax error, command unrecognized.")
+			return
+		}
+		c.isDataTypeBinary = true
+	case 'E', 'L':
+		c.reply("504 Command not implemented for that parameter.")
+		return
+	}
+
+	log.Printf("c=%+v", *c)
+	c.reply("200 Cmd ok")
 }
 
 func (c *ftpConn) connectToDataChan() (net.Conn, error) {
