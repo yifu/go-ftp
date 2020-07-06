@@ -35,19 +35,19 @@ func procesTCPConn(c *net.TCPConn) {
 
 	c.Write([]byte("220 Yves FTP Ready\r\n"))
 
-	curWorkDir, err := os.Getwd()
+	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatal("os.Getwd:", err)
 	}
-	ftpConn := &ftpConn{c, curWorkDir, "", false}
+	ftpConn := &ftpConn{c, wd, wd, "", false}
 	ftpConn.processFTPConn()
 }
 
 type ftpConn struct {
 	*net.TCPConn
-	curWorkDir       string
-	dataAddr         string
-	isDataTypeBinary bool
+	jailDir, curWorkDir string
+	dataAddr            string
+	isDataTypeBinary    bool
 }
 
 func (c *ftpConn) processFTPConn() {
@@ -96,14 +96,24 @@ func (c *ftpConn) procCWDCmd(args string) {
 		c.reply("501 Empty parameters.")
 		return
 	}
-	newCurWorkDir := filepath.Clean(filepath.Join(c.curWorkDir, args))
-	_, err := os.Stat(newCurWorkDir)
+
+	targetPath := c.computeTargetPath(args)
+	if !strings.HasPrefix(targetPath, c.jailDir) {
+		c.reply("550 new working dir is out of jail.")
+	}
+
+	fi, err := os.Stat(targetPath)
 	if err != nil {
 		log.Print("os.Stat: ", err)
 		c.reply("550 new working dir does not exist.")
 		return
 	}
-	c.curWorkDir = newCurWorkDir
+	if !fi.IsDir() {
+		c.reply("550 arg is not a directory.")
+		return
+	}
+
+	c.curWorkDir = targetPath
 	c.reply("200 Current workdir changed.")
 }
 
@@ -140,7 +150,11 @@ func (c *ftpConn) procPortCmd(args string) {
 }
 
 func (c *ftpConn) procListCmd(args string) {
-	targetPath := filepath.Clean(filepath.Join(c.curWorkDir, args))
+	targetPath := c.computeTargetPath(args)
+	if !strings.HasPrefix(targetPath, c.jailDir) {
+		c.reply("550 new working dir is out of jail.")
+	}
+
 	log.Printf("Target path %q", targetPath)
 
 	files, err := ioutil.ReadDir(targetPath)
@@ -167,7 +181,16 @@ func (c *ftpConn) procListCmd(args string) {
 }
 
 func (c *ftpConn) procRetrCmd(args string) {
-	targetPath := filepath.Clean(filepath.Join(c.curWorkDir, args))
+	if len(args) == 0 {
+		c.reply("501 Empty parameters.")
+		return
+	}
+
+	targetPath := c.computeTargetPath(args)
+	if !strings.HasPrefix(targetPath, c.jailDir) {
+		c.reply("550 new working dir is out of jail.")
+	}
+
 	log.Printf("Target path %q", targetPath)
 
 	f, err := os.Open(targetPath)
@@ -275,4 +298,17 @@ func (c *ftpConn) reply(line string) {
 	line += c.EOL()
 	log.Printf("<< %q", line)
 	fmt.Fprint(c, line)
+}
+
+func (c *ftpConn) computeTargetPath(arg string) string {
+	arg = strings.Trim(arg, "")
+
+	if filepath.IsAbs(arg) {
+		// args is an absolute path.
+		log.Printf("%q is an absolute path.", arg)
+		return filepath.Clean(filepath.Join(c.jailDir, arg))
+	}
+	// args is a relative path.
+	log.Printf("%q is a relative path.", arg)
+	return filepath.Clean(filepath.Join(c.curWorkDir, arg))
 }
